@@ -20,6 +20,9 @@
 # production
 /build
 
+# local IRMS data store (delete to reseed)
+/.data/
+
 # misc
 .DS_Store
 *.pem

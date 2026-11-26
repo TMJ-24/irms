@@ -1,69 +1,140 @@
-import Image from "next/image";
+import Link from "next/link";
+import {
+  ShieldAlert, FolderOpen, Flame, Clock, CheckCircle2, TimerReset, ArrowRight,
+} from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardHeader } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
+import { HorizontalBarList } from "@/components/charts/horizontal-bar-list";
+import { DonutChart } from "@/components/charts/donut-chart";
+import { TrendLineChart } from "@/components/charts/trend-line-chart";
+import { SeverityBadge, StatusBadge } from "@/components/ui/badge";
+import {
+  dashboardKpis, monthlyTrend, bySeverity, byCategory, byAgency, analystWorkload, trendRangeLabel,
+} from "@/lib/stats";
+import { agencyById } from "@/lib/reference-data";
+import { formatDateTime, relativeTime } from "@/lib/format";
+import { getDb } from "@/lib/db";
 
-export default function Home() {
+export default async function DashboardPage() {
+  const { incidents, users } = await getDb();
+  const now = new Date();
+  const kpis = dashboardKpis(incidents, now);
+  const trend = monthlyTrend(incidents, now);
+  const severity = bySeverity(incidents);
+  const categories = byCategory(incidents);
+  const agencies = byAgency(incidents, now).slice(0, 6);
+  const workload = analystWorkload(incidents, users);
+  const recent = [...incidents].sort((a, b) => b.reportedAt.localeCompare(a.reportedAt)).slice(0, 7);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div>
+      <PageHeader
+        title="Cyber Security Operations Dashboard"
+        subtitle={`Division-wide visibility across all reported cyber security incidents — live as at ${formatDateTime(now.toISOString())}`}
+        actions={
+          <Link
+            href="/reports"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-sm font-semibold text-ink-secondary transition hover:bg-black/5"
+          >
+            View full reports <ArrowRight size={15} />
+          </Link>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+        <StatTile label="Total incidents" value={String(kpis.total)} icon={ShieldAlert} tone="brand" hint={`${kpis.thisMonth} this month`} href="/incidents" />
+        <StatTile label="Open incidents" value={String(kpis.open)} icon={FolderOpen} tone="warning" hint="active caseload" href="/incidents?status=open" />
+        <StatTile label="Critical" value={String(kpis.critical)} icon={Flame} tone="critical" hint={`+${kpis.high} high`} href="/incidents?severity=Critical" />
+        <StatTile
+          label="SLA breaches"
+          value={String(kpis.slaBreaches)}
+          icon={Clock}
+          tone={kpis.slaBreaches > 0 ? "critical" : "good"}
+          hint="open & overdue"
+          href="/alerts"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <StatTile label="Avg response" value={`${kpis.avgResponse.toFixed(1)}h`} icon={TimerReset} tone="brand" hint="report → assigned" />
+        <StatTile label="Resolved" value={String(kpis.resolved)} icon={CheckCircle2} tone="good" hint={`avg ${kpis.avgResolution.toFixed(0)}h to close`} href="/incidents?status=closed" />
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <CardHeader title="Incident trend" subtitle={`Reported incidents per month, ${trendRangeLabel(now)}`} />
+          <TrendLineChart data={trend} />
+        </Card>
+        <Card>
+          <CardHeader title="Incidents by severity" subtitle="All reported incidents" />
+          <DonutChart data={severity} centerLabel="incidents" centerValue={String(kpis.total)} />
+        </Card>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader title="Incidents by category" subtitle="Top reported categories" />
+          <HorizontalBarList data={categories} color="var(--series-1)" />
+        </Card>
+        <Card>
+          <CardHeader title="Incidents by agency" subtitle="Top 6 agencies by volume" />
+          <HorizontalBarList data={agencies.map((a) => ({ label: a.agency.shortName, value: a.total }))} color="var(--series-2)" />
+        </Card>
+        <Card>
+          <CardHeader title="Analyst workload" subtitle="Open incidents assigned per analyst" />
+          <HorizontalBarList data={workload} color="var(--series-7)" />
+        </Card>
+      </div>
+
+      <Card className="mt-4" padded={false}>
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
+          <div>
+            <h3 className="text-[15px] font-semibold text-ink">Recent incidents</h3>
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">Most recently reported cases across all agencies</p>
+          </div>
+          <Link href="/incidents" className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand hover:text-brand-dark">
+            View all <ArrowRight size={14} />
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="scroll-thin overflow-x-auto">
+          <table className="w-full min-w-[860px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)] text-[11.5px] uppercase tracking-wide text-ink-muted">
+                <th className="px-5 py-2.5 font-semibold">Incident</th>
+                <th className="px-3 py-2.5 font-semibold">Agency</th>
+                <th className="px-3 py-2.5 font-semibold">Severity</th>
+                <th className="px-3 py-2.5 font-semibold">Status</th>
+                <th className="px-3 py-2.5 font-semibold">Assigned to</th>
+                <th className="px-5 py-2.5 font-semibold">Reported</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((inc) => (
+                <tr key={inc.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--page)]">
+                  <td className="px-5 py-3">
+                    <Link href={`/incidents/${inc.id}`} className="block max-w-[280px]">
+                      <span className="block text-[12.5px] font-semibold text-brand">{inc.id}</span>
+                      <span className="block truncate text-[13px] text-ink">{inc.title}</span>
+                    </Link>
+                  </td>
+                  <td className="px-3 py-3 text-[13px] text-ink-secondary">{agencyById(inc.agencyId)?.shortName}</td>
+                  <td className="px-3 py-3"><SeverityBadge severity={inc.severity} /></td>
+                  <td className="px-3 py-3"><StatusBadge status={inc.status} /></td>
+                  <td className="px-3 py-3 text-[13px] text-ink-secondary">{inc.assignedTo ?? "Unassigned"}</td>
+                  <td className="px-5 py-3 text-[13px] text-ink-muted" title={formatDateTime(inc.reportedAt)}>
+                    {relativeTime(inc.reportedAt, now)}
+                  </td>
+                </tr>
+              ))}
+              {recent.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-10 text-center text-[13px] text-ink-muted">
+                    No incidents reported yet. <Link href="/report-incident" className="font-semibold text-brand hover:underline">Report the first incident</Link>.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </main>
+      </Card>
     </div>
   );
 }
