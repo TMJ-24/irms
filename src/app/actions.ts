@@ -1,4 +1,8 @@
-"use server";
+﻿"use server";
+
+const DEMO_MODE = true;
+function demoOk(extra?: Record<string, unknown>) { return { ok: true as const, ...extra }; }
+
 
 import { revalidatePath } from "next/cache";
 import { addAudit, addTimelineEvent, findIncident, mutate, nextId } from "@/lib/db";
@@ -21,7 +25,7 @@ import {
 export type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
 const SEVERITIES: Severity[] = ["Critical", "High", "Medium", "Low", "Informational"];
-const ROLES: UserRole[] = ["Reporter", "Security Analyst", "Incident Manager", "Cyber Security Manager", "Executive", "System Administrator", "Auditor"];
+const ROLES: UserRole[] = ["Reporter", "Security Analyst", "Incident Manager", "Cyber Security Manager", "Social Media Officer", "Executive", "System Administrator", "Auditor"];
 const SIGNED_OUT = { ok: false as const, error: "Your session has expired. Sign in again to continue." };
 const FORBIDDEN = { ok: false as const, error: "Your role is not permitted to manage user accounts." };
 
@@ -32,9 +36,7 @@ function refreshAll() {
 
 const clean = (s: unknown, max = 2000) => (typeof s === "string" ? s.trim().slice(0, max) : "");
 
-// ---------------------------------------------------------------------------
 // Incident intake
-// ---------------------------------------------------------------------------
 
 export interface ReportIncidentInput {
   title: string;
@@ -48,6 +50,12 @@ export interface ReportIncidentInput {
   reporterName: string;
   reporterEmail: string;
   location?: string;
+  detectedAt?: string;
+  isOngoing?: boolean;
+  businessImpact?: string;
+  classifiedDataInvolved?: boolean;
+  reporterActionsTaken?: string;
+  iocs?: string;
   files: { name: string; size: number; hash: string }[];
 }
 
@@ -67,6 +75,7 @@ function sizeLabel(bytes: number) {
 }
 
 export async function reportIncident(input: ReportIncidentInput): Promise<ActionResult<{ id: string }>> {
+  if (DEMO_MODE) { await getCurrentUser(); return { ok: true, id: "INC-2025-DEMO" }; }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   const title = clean(input.title, 200);
@@ -146,11 +155,10 @@ export async function reportIncident(input: ReportIncidentInput): Promise<Action
   return { ok: true, id };
 }
 
-// ---------------------------------------------------------------------------
 // Incident workflow
-// ---------------------------------------------------------------------------
 
 export async function updateIncidentStatus(incidentId: string, status: IncidentStatus, note?: string): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   if (!ALL_STATUSES.includes(status)) return { ok: false, error: "Unknown status." };
@@ -178,6 +186,7 @@ export async function updateIncidentStatus(incidentId: string, status: IncidentS
 }
 
 export async function escalateIncident(incidentId: string, reason: string, raiseSeverity: boolean): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   const why = clean(reason, 1000);
@@ -204,6 +213,7 @@ export async function escalateIncident(incidentId: string, reason: string, raise
 }
 
 export async function reassignIncident(incidentId: string, assignee: string): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   const res = mutate((db): ActionResult => {
@@ -230,6 +240,7 @@ export async function reassignIncident(incidentId: string, assignee: string): Pr
 }
 
 export async function addComment(incidentId: string, body: string): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   const text = clean(body, 2000);
@@ -247,6 +258,7 @@ export async function addComment(incidentId: string, body: string): Promise<Acti
 }
 
 export async function addResponseAction(incidentId: string, action: string): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   const text = clean(action, 300);
@@ -263,6 +275,7 @@ export async function addResponseAction(incidentId: string, action: string): Pro
 }
 
 export async function recordFindings(incidentId: string, rootCause: string, lessonsLearned: string): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   const rc = clean(rootCause, 2000);
@@ -281,6 +294,7 @@ export async function recordFindings(incidentId: string, rootCause: string, less
 }
 
 export async function declareMajorIncident(incidentId: string): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   const res = mutate((db): ActionResult => {
@@ -300,11 +314,10 @@ export async function declareMajorIncident(incidentId: string): Promise<ActionRe
   return res;
 }
 
-// ---------------------------------------------------------------------------
 // Tasks
-// ---------------------------------------------------------------------------
 
 export async function updateTaskStatus(taskId: string, status: IncidentTask["status"]): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   if (!["Open", "In Progress", "Done"].includes(status)) return { ok: false, error: "Unknown task status." };
@@ -321,6 +334,7 @@ export async function updateTaskStatus(taskId: string, status: IncidentTask["sta
 }
 
 export async function createTask(incidentId: string, title: string, priority: IncidentTask["priority"], dueDate: string): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   const text = clean(title, 200);
@@ -348,14 +362,13 @@ export async function createTask(incidentId: string, title: string, priority: In
   return res;
 }
 
-// ---------------------------------------------------------------------------
 // Threat intelligence
-// ---------------------------------------------------------------------------
 
 export async function addThreatIntel(input: {
   title: string; type: ThreatIntelItem["type"]; severity: Severity; source: string;
   description: string; iocs: string; relatedCategory: IncidentCategory;
 }): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
   const me = await getCurrentUser();
   if (!me) return SIGNED_OUT;
   const title = clean(input.title, 200);
@@ -376,9 +389,7 @@ export async function addThreatIntel(input: {
   return res;
 }
 
-// ---------------------------------------------------------------------------
 // Administration
-// ---------------------------------------------------------------------------
 
 export async function addUser(input: { name: string; email: string; role: UserRole; password: string }): Promise<ActionResult> {
   const me = await getCurrentUser();
@@ -470,5 +481,351 @@ export async function changeOwnPassword(current: string, next: string, confirm: 
     addAudit(db, { actor: me.name, action: "Changed own password", target: me.email, details: "Password updated", category: "User" });
     return { ok: true };
   });
+  return res;
+}
+
+
+// Appendix A — advanced case record actions
+
+export async function recordAdvancedFindings(
+  incidentId: string,
+  data: {
+    ttpAssessment?: string;
+    residualRisk?: string;
+    rootCause?: string;
+    lessonsLearned?: string;
+  }
+): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
+  const me = await getCurrentUser();
+  if (!me) return SIGNED_OUT;
+  const res = mutate((db): ActionResult => {
+    const inc = findIncident(db, incidentId);
+    if (!inc) return { ok: false, error: "Incident not found." };
+    if (data.rootCause !== undefined) inc.rootCause = clean(data.rootCause, 2000) || undefined;
+    if (data.lessonsLearned !== undefined) inc.lessonsLearned = clean(data.lessonsLearned, 2000) || undefined;
+    if (data.ttpAssessment !== undefined) inc.ttpAssessment = clean(data.ttpAssessment, 2000) || undefined;
+    if (data.residualRisk !== undefined) inc.residualRisk = clean(data.residualRisk, 1000) || undefined;
+    addTimelineEvent(db, inc, { kind: "note", actor: me.name, title: "Advanced findings updated" });
+    return { ok: true };
+  });
+  if (res.ok) refreshAll();
+  return res;
+}
+
+export async function addStakeholderNotification(incidentId: string, note: string): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
+  const me = await getCurrentUser();
+  if (!me) return SIGNED_OUT;
+  const text = clean(note, 500);
+  if (!text) return { ok: false, error: "Notification note cannot be empty." };
+  const res = mutate((db): ActionResult => {
+    const inc = findIncident(db, incidentId);
+    if (!inc) return { ok: false, error: "Incident not found." };
+    inc.stakeholderNotifications = [...(inc.stakeholderNotifications ?? []), `${new Date().toISOString()} — ${me.name}: ${text}`];
+    addTimelineEvent(db, inc, { kind: "action", actor: me.name, title: "Stakeholder notified", description: text });
+    return { ok: true };
+  });
+  if (res.ok) refreshAll();
+  return res;
+}
+
+export async function markContained(incidentId: string): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
+  const me = await getCurrentUser();
+  if (!me) return SIGNED_OUT;
+  const res = mutate((db): ActionResult => {
+    const inc = findIncident(db, incidentId);
+    if (!inc) return { ok: false, error: "Incident not found." };
+    if (inc.containedAt) return { ok: false, error: "Incident is already marked as contained." };
+    inc.containedAt = new Date().toISOString();
+    addTimelineEvent(db, inc, { kind: "action", actor: me.name, title: "Threat contained", description: "Containment timestamp recorded for MTTC KPI." });
+    return { ok: true };
+  });
+  if (res.ok) refreshAll();
+  return res;
+}
+
+// Social Media Reporting & Handling (SMMD)
+
+import {
+  SOCIAL_PLATFORMS,
+  SOCIAL_VIOLATION_TYPES,
+} from "@/lib/reference-data";
+import {
+  type SocialMediaReport,
+  type SocialPlatform,
+  type SocialReportStatus,
+  type SocialViolationType,
+  SOCIAL_OPEN_STATUSES,
+  SOCIAL_CLOSED_STATUSES,
+} from "@/lib/types";
+
+const ALL_SOCIAL_STATUSES: SocialReportStatus[] = [
+  ...SOCIAL_OPEN_STATUSES,
+  ...SOCIAL_CLOSED_STATUSES,
+];
+
+function smmdRef(db: import("@/lib/db").Database): string {
+  db.counters.smmd += 1;
+  const year = new Date().getUTCFullYear();
+  return `SMMD-${year}-${String(db.counters.smmd).padStart(3, "0")}`;
+}
+
+export interface ReportSocialMediaInput {
+  platform: SocialPlatform;
+  contentUrl: string;
+  violationType: SocialViolationType;
+  description: string;
+  reporterName: string;
+  reporterEmail?: string;
+  linkedIncidentId?: string;
+  files: { name: string; size: number; hash: string }[];
+}
+
+export async function reportSocialMedia(
+  input: ReportSocialMediaInput
+): Promise<ActionResult<{ id: string; ref: string }>> {
+  if (DEMO_MODE) { await getCurrentUser(); return { ok: true, id: "SMMD-2025-DEMO", ref: "SMMD-2025-DEMO" }; }
+  const me = await getCurrentUser();
+  if (!me) return SIGNED_OUT;
+
+  const platform = input.platform;
+  const contentUrl = clean(input.contentUrl, 500);
+  const violationType = input.violationType;
+  const description = clean(input.description, 3000);
+  const reporterName = clean(input.reporterName, 120);
+
+  if (!SOCIAL_PLATFORMS.includes(platform))
+    return { ok: false, error: "Select a valid platform." };
+  if (!SOCIAL_VIOLATION_TYPES.includes(violationType))
+    return { ok: false, error: "Select a valid violation type." };
+  if (!description)
+    return { ok: false, error: "Description is required." };
+  if (!reporterName)
+    return { ok: false, error: "Your name is required." };
+
+  const result = mutate((db) => {
+    const now = new Date();
+    const ref = smmdRef(db);
+    const id = `sm-${db.counters.smmd}-${now.getTime()}`;
+
+    const report: SocialMediaReport = {
+      id,
+      ref,
+      linkedIncidentId: input.linkedIncidentId || undefined,
+      platform,
+      contentUrl,
+      violationType,
+      description,
+      reportedBy: reporterName,
+      reporterEmail: clean(input.reporterEmail ?? "", 200) || undefined,
+      reportedAt: now.toISOString(),
+      status: "Received",
+      evidence: (input.files ?? []).slice(0, 10).map((f, i) => ({
+        id: `${id}-ev-${i}`,
+        filename: clean(f.name, 200),
+        kind: evidenceKind(f.name),
+        uploadedBy: reporterName,
+        uploadedAt: now.toISOString(),
+        sizeLabel: sizeLabel(Number(f.size) || 0),
+        hash: /^[0-9a-f]{64}$/.test(f.hash)
+          ? `sha256:${f.hash}`
+          : "sha256:unavailable",
+      })),
+      timeline: [
+        {
+          id: `${id}-t-0`,
+          timestamp: now.toISOString(),
+          actor: reporterName,
+          action: "Report submitted",
+          note: `${platform} — ${violationType}`,
+        },
+      ],
+    };
+
+    db.socialReports.unshift(report);
+    addAudit(db, {
+      actor: reporterName,
+      action: "Submitted social media report",
+      target: ref,
+      details: `${platform}: ${violationType}`,
+      category: "Incident",
+    });
+    return { id, ref };
+  });
+
+  refreshAll();
+  return { ok: true, ...result };
+}
+
+export async function updateSocialMediaStatus(
+  reportId: string,
+  status: SocialReportStatus,
+  note?: string
+): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
+  const me = await getCurrentUser();
+  if (!me) return SIGNED_OUT;
+  if (!ALL_SOCIAL_STATUSES.includes(status))
+    return { ok: false, error: "Unknown status." };
+
+  const res = mutate((db): ActionResult => {
+    const report = db.socialReports.find((r) => r.id === reportId);
+    if (!report) return { ok: false, error: "Report not found." };
+    if (report.status === status)
+      return { ok: false, error: `Report is already ${status}.` };
+
+    const from = report.status;
+    report.status = status;
+
+    const now = new Date().toISOString();
+    if (status === "Submitted to Platform") report.submittedAt = now;
+    if (
+      status === "Closed" ||
+      status === "No Action Required" ||
+      status === "Action Taken / Content Removed" ||
+      status === "Platform Rejected"
+    ) {
+      report.closedAt = now;
+    }
+
+    report.timeline.push({
+      id: `${report.id}-t-${report.timeline.length}`,
+      timestamp: now,
+      actor: me.name,
+      action: `Status: ${from} → ${status}`,
+      note: clean(note ?? "", 500) || undefined,
+    });
+
+    addAudit(db, {
+      actor: me.name,
+      action: "Updated social media report status",
+      target: report.ref,
+      details: `${from} → ${status}`,
+      category: "Incident",
+    });
+    return { ok: true };
+  });
+
+  if (res.ok) refreshAll();
+  return res;
+}
+
+export async function assignSocialMediaOfficer(
+  reportId: string,
+  officerName: string
+): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
+  const me = await getCurrentUser();
+  if (!me) return SIGNED_OUT;
+
+  const res = mutate((db): ActionResult => {
+    const report = db.socialReports.find((r) => r.id === reportId);
+    if (!report) return { ok: false, error: "Report not found." };
+    const officer = db.users.find((u) => u.name === officerName && u.active);
+    if (!officer) return { ok: false, error: "Select an active user." };
+
+    report.assignedOfficer = officer.name;
+    if (report.status === "Received") report.status = "Under Review";
+
+    const now = new Date().toISOString();
+    report.timeline.push({
+      id: `${report.id}-t-${report.timeline.length}`,
+      timestamp: now,
+      actor: me.name,
+      action: `Assigned to ${officer.name}`,
+    });
+
+    addAudit(db, {
+      actor: me.name,
+      action: "Assigned social media officer",
+      target: report.ref,
+      details: officer.name,
+      category: "Incident",
+    });
+    return { ok: true };
+  });
+
+  if (res.ok) refreshAll();
+  return res;
+}
+
+export async function recordSocialMediaPlatformRef(
+  reportId: string,
+  platformRef: string,
+  outcomeNote?: string
+): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
+  const me = await getCurrentUser();
+  if (!me) return SIGNED_OUT;
+
+  const ref = clean(platformRef, 200);
+  if (!ref) return { ok: false, error: "Platform reference is required." };
+
+  const res = mutate((db): ActionResult => {
+    const report = db.socialReports.find((r) => r.id === reportId);
+    if (!report) return { ok: false, error: "Report not found." };
+
+    report.platformRef = ref;
+    if (outcomeNote) report.outcomeNote = clean(outcomeNote, 1000);
+
+    const now = new Date().toISOString();
+    report.timeline.push({
+      id: `${report.id}-t-${report.timeline.length}`,
+      timestamp: now,
+      actor: me.name,
+      action: "Platform reference recorded",
+      note: ref,
+    });
+
+    addAudit(db, {
+      actor: me.name,
+      action: "Recorded platform reference",
+      target: report.ref,
+      details: ref,
+      category: "Incident",
+    });
+    return { ok: true };
+  });
+
+  if (res.ok) refreshAll();
+  return res;
+}
+
+export async function addSocialMediaNote(
+  reportId: string,
+  note: string
+): Promise<ActionResult> {
+  if (DEMO_MODE) { await getCurrentUser(); return demoOk(); }
+  const me = await getCurrentUser();
+  if (!me) return SIGNED_OUT;
+
+  const text = clean(note, 2000);
+  if (!text) return { ok: false, error: "Note cannot be empty." };
+
+  const res = mutate((db): ActionResult => {
+    const report = db.socialReports.find((r) => r.id === reportId);
+    if (!report) return { ok: false, error: "Report not found." };
+
+    report.timeline.push({
+      id: `${report.id}-t-${report.timeline.length}`,
+      timestamp: new Date().toISOString(),
+      actor: me.name,
+      action: "Note added",
+      note: text,
+    });
+
+    addAudit(db, {
+      actor: me.name,
+      action: "Added note to social media report",
+      target: report.ref,
+      details: text.slice(0, 100),
+      category: "Incident",
+    });
+    return { ok: true };
+  });
+
+  if (res.ok) refreshAll();
   return res;
 }

@@ -1,7 +1,7 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { formatDate, formatTime } from "@/lib/format";
 import { clsx } from "@/lib/clsx";
 

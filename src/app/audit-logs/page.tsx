@@ -1,9 +1,9 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Download, Lock, ScrollText, X } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/ui/badge";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { formatDateTime } from "@/lib/format";
 import type { AuditLogEntry } from "@/lib/types";
 import { clsx } from "@/lib/clsx";

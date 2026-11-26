@@ -1,9 +1,9 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Building2, ArrowRight, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { byAgency } from "@/lib/stats";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 
 export default async function AgenciesPage() {
   const { incidents } = await getDb();

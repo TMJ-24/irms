@@ -1,25 +1,13 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  FilePlus2,
-  ShieldAlert,
-  Search,
-  ListChecks,
-  FolderLock,
-  History,
-  BellRing,
-  FileBarChart,
-  BarChart3,
-  Building2,
-  Radar,
-  ScrollText,
-  Settings,
-  ChevronDown,
-  Flame,
+  LayoutDashboard, FilePlus2, ShieldAlert, Search, ListChecks,
+  FolderLock, History, BellRing, FileBarChart, BarChart3, Building2,
+  Radar, ScrollText, Settings, ChevronDown, Flame, MessageSquareWarning,
+  PlusSquare, PanelLeftClose,
 } from "lucide-react";
 import { useState } from "react";
 import { clsx } from "@/lib/clsx";
@@ -29,20 +17,25 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   children?: { label: string; href: string }[];
-  badge?: string;
 }
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
+interface NavGroup { label: string; items: NavItem[]; }
 
 const NAV: NavGroup[] = [
   {
     label: "Overview",
     items: [
       { label: "Dashboard", href: "/", icon: LayoutDashboard },
-      { label: "Report Incident", href: "/report-incident", icon: FilePlus2 },
+      {
+        label: "Submit a Report",
+        href: "/report",
+        icon: FilePlus2,
+        children: [
+          { label: "Unified Report Portal", href: "/report" },
+          { label: "Cyber Incident", href: "/report-incident" },
+          { label: "Cybercrime (RPNGC)", href: "/report/cybercrime" },
+          { label: "Social Media Violation", href: "/report-social-media" },
+        ],
+      },
     ],
   },
   {
@@ -77,6 +70,23 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "Social Media",
+    items: [
+      {
+        label: "SM Reports",
+        href: "/social-media",
+        icon: MessageSquareWarning,
+        children: [
+          { label: "All Reports", href: "/social-media" },
+          { label: "Open Reports", href: "/social-media?status=open" },
+          { label: "Escalated", href: "/social-media?status=Escalated" },
+        ],
+      },
+      { label: "Report a Violation", href: "/report-social-media", icon: PlusSquare },
+      { label: "SM Analytics", href: "/social-media/analytics", icon: BarChart3 },
+    ],
+  },
+  {
     label: "Governance",
     items: [
       { label: "Audit Logs", href: "/audit-logs", icon: ScrollText },
@@ -91,20 +101,54 @@ function isActive(pathname: string, href: string) {
   return pathname === base || pathname.startsWith(base + "/");
 }
 
-export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+export function Sidebar({
+  onNavigate,
+  onToggle,
+  sidebarOpen,
+}: {
+  onNavigate?: () => void;
+  onToggle?: () => void;
+  sidebarOpen?: boolean;
+}) {
   const pathname = usePathname();
   const [openGroup, setOpenGroup] = useState<string | null>("Incidents");
 
   return (
     <div className="flex h-full w-72 flex-col bg-[var(--sidebar-bg)] text-[var(--sidebar-ink)]">
-      <div className="flex items-center gap-3 border-b border-[var(--sidebar-border)] px-5 py-5">
-        <Image src="/ncsc-logo.png" alt="National Cyber Security Centre PNG" width={52} height={52} className="h-[52px] w-[52px] shrink-0" priority />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold tracking-tight text-white">National Cyber Security Centre</p>
-          <p className="truncate text-[11px] text-[var(--sidebar-ink-muted)]">Incident Reporting &amp; Management</p>
+
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-[var(--sidebar-border)] px-4 py-4">
+        <Image
+          src="/ncsc-logo.png"
+          alt="NCSC PNG"
+          width={44}
+          height={44}
+          className="h-11 w-11 shrink-0"
+          priority
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-bold tracking-tight text-white">
+            National Cyber Security Centre
+          </p>
+          <p className="truncate text-[10.5px] text-[var(--sidebar-ink-muted)]">
+            Incident Reporting &amp; Management
+          </p>
         </div>
+        {/* Collapse / close button */}
+        {onToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--sidebar-ink-muted)] transition hover:bg-white/10 hover:text-white"
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
+          >
+            <PanelLeftClose size={17} />
+          </button>
+        )}
       </div>
 
+      {/* Declare Major Incident */}
       <Link
         href="/major-incident"
         onClick={onNavigate}
@@ -114,6 +158,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         Declare Major Incident
       </Link>
 
+      {/* Nav items */}
       <nav className="scroll-thin mt-4 flex-1 overflow-y-auto px-3 pb-4">
         {NAV.map((group) => (
           <div key={group.label} className="mb-4">
@@ -133,15 +178,20 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         onClick={() => setOpenGroup(expanded ? null : item.label)}
                         className={clsx(
                           "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition",
-                          active ? "bg-[var(--sidebar-active)] text-white" : "text-[var(--sidebar-ink)] hover:bg-white/5"
+                          active
+                            ? "bg-[var(--sidebar-active)] text-white"
+                            : "text-[var(--sidebar-ink)] hover:bg-white/5"
                         )}
                       >
                         <Icon size={17} className="shrink-0" />
                         <span className="flex-1 text-left">{item.label}</span>
-                        <ChevronDown size={14} className={clsx("transition-transform", expanded && "rotate-180")} />
+                        <ChevronDown
+                          size={14}
+                          className={clsx("transition-transform", expanded && "rotate-180")}
+                        />
                       </button>
                       {expanded && (
-                        <ul className="mt-0.5 ml-[27px] space-y-0.5 border-l border-white/10 pl-3">
+                        <ul className="ml-[27px] mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
                           {item.children.map((child) => (
                             <li key={child.href}>
                               <Link
@@ -165,7 +215,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       onClick={onNavigate}
                       className={clsx(
                         "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition",
-                        active ? "bg-[var(--sidebar-active)] text-white" : "text-[var(--sidebar-ink)] hover:bg-white/5"
+                        active
+                          ? "bg-[var(--sidebar-active)] text-white"
+                          : "text-[var(--sidebar-ink)] hover:bg-white/5"
                       )}
                     >
                       <Icon size={17} className="shrink-0" />

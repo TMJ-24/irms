@@ -1,10 +1,10 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { User, FolderLock, MessageSquare, Search, X } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { SeverityBadge, StatusBadge } from "@/components/ui/badge";
 import { agencyById } from "@/lib/reference-data";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { relativeTime } from "@/lib/format";
 import type { IncidentStatus } from "@/lib/types";
 

@@ -1,4 +1,4 @@
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+﻿import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { mutate, readDb, type Database } from "./db";
 import type { AppUser, UserRole } from "./types";
@@ -10,6 +10,14 @@ export const MIN_PASSWORD_LENGTH = 12;
 
 /** Roles allowed to manage user accounts. */
 export const USER_ADMIN_ROLES: UserRole[] = ["System Administrator", "Cyber Security Manager"];
+
+/** Roles permitted to manage social media reports. */
+export const SOCIAL_MEDIA_ROLES: UserRole[] = [
+  "Social Media Officer",
+  "Cyber Security Manager",
+  "Incident Manager",
+  "System Administrator",
+];
 
 export function canManageUsers(user: AppUser | null | undefined) {
   return !!user && USER_ADMIN_ROLES.includes(user.role);

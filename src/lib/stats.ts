@@ -1,4 +1,4 @@
-import { AGENCIES } from "./reference-data";
+﻿import { AGENCIES } from "./reference-data";
 import { CLOSED_STATUSES, OPEN_STATUSES, type AppUser, type Incident, type Severity } from "./types";
 import { SEVERITY_COLORS } from "./style-maps";
 
@@ -122,4 +122,135 @@ export function analystWorkload(incidents: Incident[], users: AppUser[]) {
     .filter((u) => u.role === "Security Analyst" && u.active)
     .map((a) => ({ label: a.name, value: incidents.filter((i) => i.assignedTo === a.name && isOpen(i)).length }))
     .sort((a, b) => b.value - a.value);
+}
+
+
+// ---------------------------------------------------------------------------
+// Extended KPIs (Section 9 of the Process Document)
+// ---------------------------------------------------------------------------
+
+/** Mean time from report created to first triage action (analyst touches the ticket). */
+export function meanTimeToTriage(incidents: Incident[]): number {
+  const times = incidents
+    .map((i) => {
+      const triageEvt = i.timeline.find((e) => e.kind === "status" && (e.title.includes("Triage") || e.title.includes("Assigned")));
+      if (!triageEvt) return null;
+      return (new Date(triageEvt.timestamp).getTime() - new Date(i.reportedAt).getTime()) / 3600000;
+    })
+    .filter((v): v is number => v !== null);
+  return times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+}
+
+/** Mean time from report to assignment (first assignment event). */
+export function meanTimeToAssign(incidents: Incident[]): number {
+  const times = incidents
+    .filter((i) => i.assignedAt)
+    .map((i) => (new Date(i.assignedAt!).getTime() - new Date(i.reportedAt).getTime()) / 3600000);
+  return times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+}
+
+/** Mean time from report to containment (containedAt field). */
+export function meanTimeToContain(incidents: Incident[]): number {
+  const times = incidents
+    .filter((i) => i.containedAt)
+    .map((i) => (new Date(i.containedAt!).getTime() - new Date(i.reportedAt).getTime()) / 3600000);
+  return times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+}
+
+/** Mean time from report to full resolution/closure. */
+export function meanTimeToResolve(incidents: Incident[]): number {
+  const closed = incidents.filter(isClosed);
+  const times = closed.map((i) => {
+    const last = i.timeline[i.timeline.length - 1];
+    return last ? (new Date(last.timestamp).getTime() - new Date(i.reportedAt).getTime()) / 3600000 : 0;
+  });
+  return times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+}
+
+/** Percentage of incidents that were escalated at least once. */
+export function escalationRate(incidents: Incident[]): number {
+  const escalated = incidents.filter((i) => i.timeline.some((e) => e.kind === "escalation")).length;
+  return incidents.length ? Math.round((escalated / incidents.length) * 100) : 0;
+}
+
+/** Percentage of closed incidents with both rootCause and lessonsLearned recorded. */
+export function closureCompletenessRate(incidents: Incident[]): number {
+  const closed = incidents.filter(isClosed);
+  if (!closed.length) return 0;
+  const complete = closed.filter((i) => i.rootCause && i.lessonsLearned).length;
+  return Math.round((complete / closed.length) * 100);
+}
+
+/** Incidents repeated for the same agency + category within 90 days. */
+export function repeatIncidentCount(incidents: Incident[]): number {
+  let count = 0;
+  for (const inc of incidents) {
+    const reported = new Date(inc.reportedAt).getTime();
+    const repeat = incidents.some(
+      (other) =>
+        other.id !== inc.id &&
+        other.agencyId === inc.agencyId &&
+        other.category === inc.category &&
+        Math.abs(new Date(other.reportedAt).getTime() - reported) <= 90 * 86400000
+    );
+    if (repeat) count++;
+  }
+  return Math.round(count / 2); // each pair counted twice
+}
+
+// ---------------------------------------------------------------------------
+// Social media analytics (Stage 3F)
+// ---------------------------------------------------------------------------
+
+import type { SocialMediaReport } from "./types";
+import { SOCIAL_PLATFORMS, SOCIAL_VIOLATION_TYPES } from "./reference-data";
+
+export function socialKpis(reports: SocialMediaReport[]) {
+  const open = reports.filter((r) => !["Closed", "No Action Required", "Action Taken / Content Removed", "No Violation Found"].includes(r.status));
+  const actioned = reports.filter((r) => r.status === "Action Taken / Content Removed");
+  const escalated = reports.filter((r) => r.status === "Escalated");
+  const submittedToMeta = reports.filter((r) => r.submittedAt);
+  const pctActioned = submittedToMeta.length ? Math.round((actioned.length / submittedToMeta.length) * 100) : 0;
+  return {
+    total: reports.length,
+    open: open.length,
+    actioned: actioned.length,
+    escalated: escalated.length,
+    submittedToMeta: submittedToMeta.length,
+    pctActioned,
+  };
+}
+
+export function socialByPlatform(reports: SocialMediaReport[]) {
+  return SOCIAL_PLATFORMS.map((p) => ({
+    label: p,
+    value: reports.filter((r) => r.platform === p).length,
+  })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
+}
+
+export function socialByViolation(reports: SocialMediaReport[]) {
+  return SOCIAL_VIOLATION_TYPES.map((v) => ({
+    label: v,
+    value: reports.filter((r) => r.violationType === v).length,
+  })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
+}
+
+export function socialByStatus(reports: SocialMediaReport[]) {
+  const counts = new Map<string, number>();
+  for (const r of reports) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
+  return [...counts.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+}
+
+export function socialMonthlyTrend(reports: SocialMediaReport[], now: Date) {
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return Array.from({ length: 6 }).map((_, idx) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - idx), 1));
+    return {
+      label: MONTHS[d.getUTCMonth()],
+      value: reports.filter((r) => {
+        const rd = new Date(r.reportedAt);
+        return rd.getUTCFullYear() === d.getUTCFullYear() && rd.getUTCMonth() === d.getUTCMonth();
+      }).length,
+    };
+  });
 }

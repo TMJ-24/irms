@@ -1,5 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+﻿import { getCurrentUser } from "@/lib/auth";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { byAgency, byCategory, dashboardKpis, isMine, isOpen } from "@/lib/stats";
 import { PageHeader } from "@/components/ui/page-header";
 import { ReportsView } from "./reports-view";

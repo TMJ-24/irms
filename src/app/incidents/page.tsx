@@ -1,7 +1,7 @@
-import { Suspense } from "react";
+﻿import { Suspense } from "react";
 import { Download } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { agencyById } from "@/lib/reference-data";
 import { isMine } from "@/lib/stats";
 import { getCurrentUser } from "@/lib/auth";

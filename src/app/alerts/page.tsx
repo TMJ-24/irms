@@ -1,10 +1,10 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { AlertTriangle, ArrowUpCircle, Clock, Flame } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { SeverityBadge, StatusBadge } from "@/components/ui/badge";
 import { agencyById } from "@/lib/reference-data";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { OPEN_STATUSES } from "@/lib/types";
 import { relativeTime, slaRemaining } from "@/lib/format";
 

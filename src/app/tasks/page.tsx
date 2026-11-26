@@ -1,8 +1,8 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { CalendarClock, X } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/badge";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { formatDate } from "@/lib/format";
 import type { IncidentTask } from "@/lib/types";
 import { clsx } from "@/lib/clsx";

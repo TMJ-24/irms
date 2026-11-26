@@ -1,14 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { ArrowUpCircle, Flame, MessageSquare, Plus, X } from "lucide-react";
 import {
   addComment,
   addResponseAction,
+  addStakeholderNotification,
   createTask,
   declareMajorIncident,
   escalateIncident,
+  markContained,
   reassignIncident,
+  recordAdvancedFindings,
   recordFindings,
   updateIncidentStatus,
   updateTaskStatus,
@@ -226,6 +229,64 @@ export function FindingsForm({ incidentId, rootCause, lessonsLearned }: { incide
       <textarea value={ll} onChange={(e) => setLl(e.target.value)} rows={2} placeholder="Lessons learned / recommendations" aria-label="Lessons learned" className={inputClass} />
       <div className="flex gap-2">
         <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Saving…" : "Save findings"}</button>
+        <button type="button" onClick={() => setEditing(false)} className={secondaryBtn}>Cancel</button>
+      </div>
+      <ErrorText error={error} />
+    </form>
+  );
+}
+
+export function MarkContainedButton({ incidentId, containedAt }: { incidentId: string; containedAt?: string }) {
+  const { pending, error, run } = useAction();
+  if (containedAt) {
+    return <p className="text-[12px] text-[#006300] font-semibold">Contained at {new Date(containedAt).toLocaleString("en-AU", { timeZone: "Pacific/Port_Moresby", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}</p>;
+  }
+  return (
+    <div>
+      <button type="button" disabled={pending} onClick={() => run(() => markContained(incidentId))}
+        className="rounded-lg border border-[#1baf7a]/40 bg-[#1baf7a]/10 px-3.5 py-2 text-[13px] font-semibold text-[#127a54] hover:bg-[#1baf7a]/20 disabled:opacity-60">
+        {pending ? "Saving..." : "Mark threat contained"}
+      </button>
+      <ErrorText error={error} />
+    </div>
+  );
+}
+
+export function StakeholderNotificationForm({ incidentId }: { incidentId: string }) {
+  const [text, setText] = useState("");
+  const { pending, error, run } = useAction();
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); run(() => addStakeholderNotification(incidentId, text), () => setText("")); }} className="mt-4 border-t border-[var(--border)] pt-4">
+      <div className="flex items-center gap-2">
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Record who was notified and when..." aria-label="Stakeholder notification" className={inputClass} />
+        <button type="submit" disabled={pending || !text.trim()} className={clsx(secondaryBtn, "shrink-0")}>{pending ? "Saving..." : "Add"}</button>
+      </div>
+      <ErrorText error={error} />
+    </form>
+  );
+}
+
+export function AdvancedFindingsForm({
+  incidentId, ttpAssessment, residualRisk,
+}: { incidentId: string; ttpAssessment?: string; residualRisk?: string }) {
+  const [editing, setEditing] = useState(false);
+  const [ttp, setTtp] = useState(ttpAssessment ?? "");
+  const [rr, setRr] = useState(residualRisk ?? "");
+  const { pending, error, run } = useAction();
+
+  if (!editing) {
+    return (
+      <button type="button" onClick={() => { setTtp(ttpAssessment ?? ""); setRr(residualRisk ?? ""); setEditing(true); }} className="mt-3 text-[12.5px] font-semibold text-brand hover:underline">
+        {ttpAssessment || residualRisk ? "Edit TTP / residual risk" : "Record TTP assessment & residual risk"}
+      </button>
+    );
+  }
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); run(() => recordAdvancedFindings(incidentId, { ttpAssessment: ttp, residualRisk: rr }), () => setEditing(false)); }} className="mt-3 space-y-3">
+      <textarea value={ttp} onChange={(e) => setTtp(e.target.value)} rows={3} placeholder="Threat actor TTPs (MITRE ATT&CK techniques, tools, procedures observed...)" aria-label="TTP assessment" className={inputClass} />
+      <textarea value={rr} onChange={(e) => setRr(e.target.value)} rows={2} placeholder="Residual risk after remediation (what remains unmitigated and who owns it?)" aria-label="Residual risk" className={inputClass} />
+      <div className="flex gap-2">
+        <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Saving..." : "Save"}</button>
         <button type="button" onClick={() => setEditing(false)} className={secondaryBtn}>Cancel</button>
       </div>
       <ErrorText error={error} />

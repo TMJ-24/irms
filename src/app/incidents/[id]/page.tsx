@@ -1,9 +1,9 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronRight, Building2, MapPin, User, Radio, Clock, Flame,
   FileText, ListChecks, Paperclip, Search as SearchIcon, BookOpen,
-  Download, ShieldCheck, Layers, CalendarClock,
+  Download, ShieldCheck, Layers, CalendarClock, AlertTriangle, Bell, Shield,
 } from "lucide-react";
 import { getDb, findIncident } from "@/lib/db";
 import { agencyById } from "@/lib/reference-data";
@@ -13,7 +13,8 @@ import { SeverityBadge, StatusBadge, Pill } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { clsx } from "@/lib/clsx";
 import {
-  CommentForm, FindingsForm, IncidentActionBar, NewTaskForm, ResponseActionForm, TaskStatusSelect,
+  AdvancedFindingsForm, CommentForm, FindingsForm, IncidentActionBar, MarkContainedButton,
+  NewTaskForm, ResponseActionForm, StakeholderNotificationForm, TaskStatusSelect,
 } from "./incident-actions";
 
 const TIMELINE_DOT: Record<string, string> = {
@@ -95,6 +96,18 @@ export default async function IncidentDetailPage({ params }: PageProps<"/inciden
                 {incident.impact.map((imp) => <Pill key={imp} tone="brand">{imp}</Pill>)}
               </div>
             )}
+            {incident.businessImpact && (
+              <div className="mt-4">
+                <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-ink-muted">Business / operational impact</p>
+                <p className="text-[13px] text-ink-secondary">{incident.businessImpact}</p>
+              </div>
+            )}
+            {incident.reporterActionsTaken && (
+              <div className="mt-4">
+                <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-ink-muted">Actions taken before reporting</p>
+                <p className="text-[13px] text-ink-secondary">{incident.reporterActionsTaken}</p>
+              </div>
+            )}
             {incident.affectedSystems.length > 0 && (
               <div className="mt-4">
                 <p className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wide text-ink-muted">Affected systems</p>
@@ -162,6 +175,40 @@ export default async function IncidentDetailPage({ params }: PageProps<"/inciden
             </ul>
           </Card>
 
+
+          {incident.iocs && incident.iocs.length > 0 && (
+            <Card>
+              <CardHeader title="Indicators of compromise (IOCs)" subtitle={`${incident.iocs.length} indicator(s) recorded`} />
+              <ul className="space-y-1.5">
+                {incident.iocs.map((ioc, i) => (
+                  <li key={i} className="flex items-start gap-2 rounded-lg bg-[var(--page)] px-3 py-1.5 font-mono text-[12px] text-ink-secondary">
+                    <AlertTriangle size={12} className="mt-0.5 shrink-0 text-[#eda100]" /> {ioc}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader title="Containment" />
+            <MarkContainedButton incidentId={incident.id} containedAt={incident.containedAt} />
+          </Card>
+
+          <Card>
+            <CardHeader title="Stakeholder notifications" subtitle="Record everyone notified during this incident" />
+            {incident.stakeholderNotifications && incident.stakeholderNotifications.length > 0 ? (
+              <ul className="mb-3 space-y-1.5">
+                {incident.stakeholderNotifications.map((n, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12.5px] text-ink-secondary">
+                    <Bell size={13} className="mt-0.5 shrink-0 text-ink-muted" /> {n}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[13px] text-ink-muted mb-3">No stakeholder notifications recorded yet.</p>
+            )}
+            <StakeholderNotificationForm incidentId={incident.id} />
+          </Card>
           <Card>
             <CardHeader title="Root cause & lessons learned" />
             {incident.rootCause && (
@@ -184,6 +231,14 @@ export default async function IncidentDetailPage({ params }: PageProps<"/inciden
               <p className="text-[13px] text-ink-muted">Not yet recorded — typically completed during recovery or post-incident review.</p>
             )}
             <FindingsForm incidentId={incident.id} rootCause={incident.rootCause} lessonsLearned={incident.lessonsLearned} />
+            <div className="mt-4 border-t border-[var(--border)] pt-4">
+              <p className="mb-1 flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-wide text-ink-muted">
+                <Shield size={12} /> TTP Assessment &amp; Residual Risk
+              </p>
+              {incident.ttpAssessment && <p className="mb-2 text-[13px] text-ink-secondary">{incident.ttpAssessment}</p>}
+              {incident.residualRisk && <p className="mb-2 text-[13px] text-ink-secondary"><span className="font-semibold">Residual risk:</span> {incident.residualRisk}</p>}
+              <AdvancedFindingsForm incidentId={incident.id} ttpAssessment={incident.ttpAssessment} residualRisk={incident.residualRisk} />
+            </div>
           </Card>
 
           <Card>
@@ -215,6 +270,9 @@ export default async function IncidentDetailPage({ params }: PageProps<"/inciden
             <dl className="space-y-3 text-[13px]">
               <Row label="Reported by" value={incident.reportedBy} />
               {incident.reporterEmail && <Row label="Reporter email" value={incident.reporterEmail} />}
+              {incident.detectedAt && <Row label="Detected at" value={formatDateTime(incident.detectedAt)} />}
+              <Row label="Is ongoing" value={incident.isOngoing ? "Yes — threat is active" : "No"} />
+              {incident.classifiedDataInvolved && <Row label="Classified data" value="Potentially involved" />}
               <Row label="Reported at" value={formatDateTime(incident.reportedAt)} />
               <Row label="Assigned at" value={incident.assignedAt ? formatDateTime(incident.assignedAt) : "—"} />
               <Row label="SLA target" value={`${incident.slaHours}h response`} />

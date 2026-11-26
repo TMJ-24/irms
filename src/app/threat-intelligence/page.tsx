@@ -1,9 +1,9 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Radar, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { SeverityBadge, Pill } from "@/components/ui/badge";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { isOpen } from "@/lib/stats";
 import { AddIntelForm } from "./add-intel-form";
 import { formatDate } from "@/lib/format";

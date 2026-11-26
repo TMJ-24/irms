@@ -1,4 +1,4 @@
-import type { Agency, ImpactArea, IncidentCategory, IncidentSource, Severity } from "./types";
+﻿import type { Agency, ImpactArea, IncidentCategory, IncidentSource, Severity } from "./types";
 
 // Static reference data used across the system. Safe to import from client components.
 // No sample incidents, users or activity live here — all records are created through the app.
@@ -51,3 +51,50 @@ export function agencyById(id: string): Agency | undefined {
 export function initialsOf(name: string) {
   return name.split(/\s+/).filter(Boolean).map((n) => n[0]!.toUpperCase()).join("").slice(0, 3);
 }
+
+// ---------------------------------------------------------------------------
+// Social Media reference data
+// ---------------------------------------------------------------------------
+
+import type { SocialPlatform, SocialReportStatus, SocialViolationType } from "./types";
+
+export const SOCIAL_PLATFORMS: SocialPlatform[] = [
+  "Facebook", "Instagram", "X (Twitter)", "YouTube", "TikTok", "LinkedIn", "WhatsApp", "Other",
+];
+
+export const SOCIAL_VIOLATION_TYPES: SocialViolationType[] = [
+  "Impersonation / Fake Account",
+  "Misinformation / Disinformation",
+  "Explicit / Sexual Content",
+  "Hate Speech / Incitement",
+  "Violence or Incitement",
+  "Harassment / Cyberbullying",
+  "Scams / Fraudulent Content",
+  "Unauthorized Use of Government Content",
+  "Defamation",
+  "Child Safety Violation",
+  "Coordinated Inauthentic Behaviour",
+  "Other",
+];
+
+export const SOCIAL_STATUSES: SocialReportStatus[] = [
+  "Received",
+  "Under Review",
+  "Verified",
+  "Submitted to Platform",
+  "Pending Action",
+  "Action Taken / Content Removed",
+  "Platform Rejected",
+  "No Violation Found",
+  "Escalated",
+  "Closed",
+  "No Action Required",
+];
+
+/** Platform-specific takedown/report URLs */
+export const PLATFORM_REPORT_URLS: Partial<Record<SocialPlatform, string>> = {
+  Facebook:      "https://www.facebook.com/help/181495968648557",
+  Instagram:     "https://help.instagram.com/192435014247952",
+  "X (Twitter)": "https://help.twitter.com/en/safety-and-security/report-twitter-abuse",
+  YouTube:       "https://support.google.com/youtube/answer/2802268",
+};

@@ -1,4 +1,4 @@
-import type { IncidentStatus, Severity } from "./types";
+﻿import type { IncidentStatus, Severity } from "./types";
 
 export const SEVERITY_STYLES: Record<Severity, { bg: string; text: string; dot: string; ring: string }> = {
   Critical: { bg: "bg-[#d03b3b]/10", text: "text-[#a92727]", dot: "bg-[#d03b3b]", ring: "ring-[#d03b3b]/25" },
@@ -29,6 +29,7 @@ export const STATUS_COLORS: Record<IncidentStatus, string> = {
   Recovery: "#1baf7a",
   Monitoring: "#127a54",
   Resolved: "#0ca30c",
+  "Post-Incident Review": "#127a54",
   Closed: "#64748b",
   Rejected: "#94a3b8",
   Duplicate: "#a8a29e",
@@ -49,6 +50,7 @@ export const STATUS_STYLES: Record<IncidentStatus, { bg: string; text: string; d
   Eradication: criticalStyle,
   Recovery: { bg: "bg-[#1baf7a]/10", text: "text-[#127a54]", dot: "bg-[#1baf7a]", ring: "ring-[#1baf7a]/25" },
   Monitoring: { bg: "bg-[#1baf7a]/10", text: "text-[#127a54]", dot: "bg-[#1baf7a]", ring: "ring-[#1baf7a]/25" },
+  "Post-Incident Review": { bg: "bg-[#1baf7a]/10", text: "text-[#127a54]", dot: "bg-[#1baf7a]", ring: "ring-[#1baf7a]/25" },
   Resolved: closedStyle,
   Closed: { bg: "bg-slate-500/10", text: "text-slate-600", dot: "bg-slate-500", ring: "ring-slate-400/25" },
   Rejected: negativeStyle,

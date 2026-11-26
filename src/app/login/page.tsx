@@ -1,20 +1,13 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Image from "next/image";
 import { LoginForm } from "./login-form";
 import { getDb } from "@/lib/db";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth";
-import { ShieldAlert, Search, Clock, BarChart3, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Sign In — Incident Reporting Management System",
+  title: "Sign In - Incident Reporting Management System",
 };
-
-const FEATURES = [
-  { icon: ShieldAlert, text: "Report & classify incidents" },
-  { icon: Search, text: "Full, immutable audit trail" },
-  { icon: Clock, text: "SLA tracking & escalations" },
-  { icon: BarChart3, text: "Executive & agency analytics" },
-];
 
 export default async function LoginPage() {
   const { users } = await getDb();
@@ -39,27 +32,16 @@ export default async function LoginPage() {
             </p>
           </div>
 
-          <ul className="mt-6 grid grid-cols-2 gap-2.5">
-            {FEATURES.map((f) => (
-              <li key={f.text} className="flex items-center gap-2 rounded-lg bg-[var(--page)] px-2.5 py-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand/10 text-brand">
-                  <f.icon size={13} />
-                </span>
-                <span className="text-[11.5px] leading-snug text-ink-secondary">{f.text}</span>
-              </li>
-            ))}
-          </ul>
-
           <div className="my-6 h-px bg-[var(--border)]" />
 
           <LoginForm setupRequired={users.length === 0} minPasswordLength={MIN_PASSWORD_LENGTH} />
-        </div>
 
-        <div className="relative mt-6 flex items-start justify-center gap-2 px-4 text-center">
-          <Lock size={12} className="mt-0.5 shrink-0 text-[var(--sidebar-ink-muted)]" />
-          <p className="text-[11px] leading-snug text-[var(--sidebar-ink-muted)]">
-            This system is the property of the Government of Papua New Guinea. FOR OFFICIAL USE ONLY — unauthorised access is prohibited and monitored, and all activity is logged to an immutable audit trail.
-          </p>
+          <div className="mt-6 flex items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--page)] px-3.5 py-3">
+            <Lock size={12} className="mt-0.5 shrink-0 text-ink-muted" />
+            <p className="text-[11px] leading-snug text-ink-muted">
+              This system is the property of the Government of Papua New Guinea. FOR OFFICIAL USE ONLY &mdash; unauthorised access is prohibited and monitored, and all activity is logged to an immutable audit trail.
+            </p>
+          </div>
         </div>
       </div>
     </div>

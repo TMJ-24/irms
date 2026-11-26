@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   Radar, SearchCheck, Flame, Users2, ShieldOff, Megaphone, Wrench, ClipboardCheck, BookOpen, FileCheck2,
 } from "lucide-react";
@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardHeader } from "@/components/ui/card";
 import { SeverityBadge, StatusBadge } from "@/components/ui/badge";
 import { agencyById } from "@/lib/reference-data";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { isOpen } from "@/lib/stats";
 import { formatDateTime, relativeTime } from "@/lib/format";
 import { DeclareMajorIncidentPanel } from "./declare-panel";

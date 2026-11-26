@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { Users, ShieldCheck, Settings2, UserPlus, X } from "lucide-react";
@@ -9,13 +9,14 @@ import { addUser, changeUserRole, resetUserPassword, setUserActive, type ActionR
 import { clsx } from "@/lib/clsx";
 import type { AppUser, Severity, UserRole } from "@/lib/types";
 
-const ROLES: UserRole[] = ["Reporter", "Security Analyst", "Incident Manager", "Cyber Security Manager", "Executive", "System Administrator", "Auditor"];
+const ROLES: UserRole[] = ["Reporter", "Security Analyst", "Incident Manager", "Cyber Security Manager", "Social Media Officer", "Executive", "System Administrator", "Auditor"];
 
 const ROLE_CAPABILITIES: Record<UserRole, string[]> = {
   "Reporter": ["Submit and view own incidents"],
   "Security Analyst": ["Investigate, update and manage incidents"],
   "Incident Manager": ["Assign, escalate, approve and close incidents"],
   "Cyber Security Manager": ["Division-wide monitoring and reporting", "Declare Major Cyber Incidents"],
+  "Social Media Officer": ["Review, verify and action social media violation reports", "Liaise with platform trust & safety teams"],
   "Executive": ["Read-only dashboards and reports"],
   "System Administrator": ["Users, roles, configuration and system administration"],
   "Auditor": ["Read-only access to incident history and audit logs"],

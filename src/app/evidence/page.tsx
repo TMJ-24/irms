@@ -1,9 +1,9 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Paperclip, Download, Lock } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/ui/badge";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { formatDateTime } from "@/lib/format";
 
 const KIND_TONE: Record<string, "brand" | "good" | "warning" | "neutral" | "critical"> = {

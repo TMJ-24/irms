@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   ShieldAlert, FolderOpen, Flame, Clock, CheckCircle2, TimerReset, ArrowRight,
 } from "lucide-react";
@@ -14,10 +14,12 @@ import {
 } from "@/lib/stats";
 import { agencyById } from "@/lib/reference-data";
 import { formatDateTime, relativeTime } from "@/lib/format";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 
 export default async function DashboardPage() {
-  const { incidents, users } = await getDb();
+  const db = await getDb();
+  const { incidents, users, socialReports } = db;
+  const socialReportCount = socialReports?.length ?? 0;
   const now = new Date();
   const kpis = dashboardKpis(incidents, now);
   const trend = monthlyTrend(incidents, now);

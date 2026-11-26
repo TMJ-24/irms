@@ -1,12 +1,12 @@
-import fs from "node:fs";
+﻿import fs from "node:fs";
 import path from "node:path";
 import { connection } from "next/server";
-import type { AppUser, AuditLogEntry, GeneratedReport, Incident, IncidentTask, ThreatIntelItem, TimelineEvent } from "./types";
+import type { AppUser, AuditLogEntry, GeneratedReport, Incident, IncidentTask, SocialMediaReport, ThreatIntelItem, TimelineEvent } from "./types";
 
 /**
  * Server-side data store for IRMS, persisted to `.data/irms-db.json`.
  *
- * The store starts empty — no sample data. The first administrator account is
+ * The store starts empty â€” no sample data. The first administrator account is
  * created from the sign-in page on first run; everything else is created through
  * the application. Delete the file to reset the system completely.
  */
@@ -31,7 +31,8 @@ export interface Database {
   auditLogs: AuditLogEntry[];
   threatIntel: ThreatIntelItem[];
   reports: GeneratedReport[];
-  counters: { incident: number; audit: number; task: number; report: number; user: number; event: number; intel: number };
+  socialReports: SocialMediaReport[];
+  counters: { incident: number; audit: number; task: number; report: number; user: number; event: number; intel: number; smmd: number };
 }
 
 const DB_VERSION = 3;
@@ -52,7 +53,8 @@ function createDatabase(): Database {
     auditLogs: [],
     threatIntel: [],
     reports: [],
-    counters: { incident: 0, audit: 1000, task: 1000, report: 1000, user: 0, event: 0, intel: 0 },
+    socialReports: [],
+    counters: { incident: 0, audit: 1000, task: 1000, report: 1000, user: 0, event: 0, intel: 0, smmd: 0 },
   };
 }
 
@@ -61,7 +63,7 @@ function load(): Database {
     if (fs.existsSync(DB_FILE)) {
       const parsed = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) as Database;
       if (parsed.version === DB_VERSION) return parsed;
-      // Older formats contained generated demo data — start clean instead of migrating it.
+      // Older formats contained generated demo data â€” start clean instead of migrating it.
       fs.renameSync(DB_FILE, `${DB_FILE}.v${parsed.version ?? "old"}.bak`);
     }
   } catch (err) {
@@ -141,3 +143,5 @@ export function addTimelineEvent(db: Database, incident: Incident, evt: Omit<Tim
   });
   return event;
 }
+
+

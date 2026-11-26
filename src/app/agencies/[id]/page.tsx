@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Mail, Building2 } from "lucide-react";
 import { AGENCIES } from "@/lib/reference-data";
-import { getDb } from "@/lib/db";
+import { getDemoDb as getDb } from "@/lib/demo-db";
 import { isOpen, isSlaBreached } from "@/lib/stats";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardHeader } from "@/components/ui/card";
